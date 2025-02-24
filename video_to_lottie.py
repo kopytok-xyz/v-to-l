@@ -45,14 +45,17 @@ def optimize_image(image_data, quality=75, format="webp"):
     
     return output.getvalue()
 
-def extract_frames(video_path, output_folder, step, quality=1):
+def extract_frames(video_path, output_folder, step, quality=1, scale=1.0):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
+    
+    scale_filter = f"scale=iw*{scale}:ih*{scale}" if scale != 1.0 else "null"
+    
     ffmpeg_cmd = [
         "ffmpeg", "-i", video_path,
-        "-vf", f"select=not(mod(n\\,{step})),scale='min(512,iw)':-1:flags=lanczos",
+        "-vf", f"select=not(mod(n\\,{step})),{scale_filter}",
         "-vsync", "vfr",
-        "-q:v", str(quality),  # 1 - лучшее качество, 31 - худшее
+        "-q:v", str(quality),
         os.path.join(output_folder, "frame_%04d.jpg")
     ]
     proc = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -104,12 +107,6 @@ def encode_frames_to_json(frames_folder, max_frames, quality=75, format="webp"):
     frames = []
     first_frame = Image.open(os.path.join(frames_folder, selected_files[0]))
     w, h = first_frame.size
-    
-    max_size = 512
-    if w > max_size or h > max_size:
-        ratio = min(max_size/w, max_size/h)
-        w = int(w * ratio)
-        h = int(h * ratio)
 
     for idx, file in enumerate(selected_files):
         with open(os.path.join(frames_folder, file), "rb") as f:
@@ -155,6 +152,16 @@ def ask_user_preferences():
             except ValueError:
                 print("Пожалуйста, введите число")
 
+    # Добавляем выбор масштаба
+    while True:
+        try:
+            scale = float(input("\nВведите масштаб кадров (1.0 - оригинальный размер, от 0.1 до 1.0 для уменьшения): ").strip())
+            if 0.1 <= scale <= 1.0:
+                break
+            print("Значение должно быть от 0.1 до 1.0")
+        except ValueError:
+            print("Пожалуйста, введите число")
+
     # Количество кадров
     while True:
         try:
@@ -199,7 +206,8 @@ def ask_user_preferences():
         'quality': quality,
         'optimize': optimize,
         'target_frames': target_frames,
-        'selected_videos': selected_videos
+        'selected_videos': selected_videos,
+        'scale': scale
     }
 
 def get_frames_folder(video_path):
@@ -237,7 +245,7 @@ def main():
         print("Будет извлекаться каждый", step, "кадр")
         
         # Извлекаем кадры с максимальным качеством
-        extract_frames(input_path, frames_folder, step, quality=1)
+        extract_frames(input_path, frames_folder, step, quality=1, scale=prefs['scale'])
         print("Извлечение кадров завершено. Кодирование в Lottie JSON...")
         
         data = encode_frames_to_json(
