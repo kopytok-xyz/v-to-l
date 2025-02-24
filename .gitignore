@@ -2,11 +2,9 @@
 *
 */
 
-# Кроме Python файла и output папки
+# Кроме Python файла
 !video_to_lottie.py
 !.gitignore
-!output-lotties/
-!output-lotties/*
 
 # Игнорировать временные Python файлы
 *.pyc
