@@ -1,0 +1,14 @@
+# Игнорировать все файлы и папки
+*
+*/
+
+# Кроме Python файла
+!video_to_lottie.py
+!.gitignore
+
+# Игнорировать временные Python файлы
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
